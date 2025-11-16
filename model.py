@@ -76,6 +76,68 @@ class CustomGNN(torch.nn.Module):
 
         return embedding"""
     
+class CustomGAT(torch.nn.Module):
+    '''
+    Custom Graph Attention Network (GAT) model. Use attention mechanism to aggregate
+    weighted neighbor contributions.
+    '''
+    def __init__(self, input_dim, hidden_dim, output_dim, heads=4):
+        super(CustomGAT, self).__init__()
+        self.prelayer1 = nn.Linear(input_dim, hidden_dim)
+        self.prelayer2 = nn.Linear(hidden_dim, hidden_dim)
+        self.prelayer3 = nn.Linear(hidden_dim, hidden_dim)
+
+        self.gat1 = GATv2Conv(
+            hidden_dim, 
+            hidden_dim // heads,
+            heads=heads,
+            dropout=0.5,
+            concat=True
+        )
+        
+        self.gat2 = GATv2Conv(
+            hidden_dim,
+            hidden_dim // heads,
+            heads=heads,
+            dropout=0.5,
+            concat=True
+        )
+        
+        self.gat3 = GATv2Conv(
+            hidden_dim,
+            hidden_dim // heads,
+            heads=heads,
+            dropout=0.5,
+            concat=True
+        )
+
+        self.postlayer1 = nn.Linear(hidden_dim, hidden_dim)
+        self.postlayer2 = nn.Linear(hidden_dim, hidden_dim)
+        self.postlayer3 = nn.Linear(hidden_dim, output_dim)
+
+        self.edge_weight = nn.Linear(output_dim * 2, 1)
+
+    def forward(self, feature_data, edge_info):
+        x = self.prelayer1(feature_data).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.prelayer2(x).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.prelayer3(x).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.gat1(x, edge_info).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.gat2(x, edge_info).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.gat3(x, edge_info).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.postlayer1(x).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.postlayer2(x).relu()
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.postlayer3(x).tanh()
+
+        return x
+
 def fully_connected_edges(n_nodes, device):
     """Return edge_index for a fully connected directed graph WITHOUT self-loops."""
     src = torch.arange(n_nodes, device=device).repeat_interleave(n_nodes)

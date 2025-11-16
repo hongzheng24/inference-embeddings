@@ -1,6 +1,6 @@
 from preprocess import FactContrastiveDataset
 import pickle
-from model import CustomGNN, fully_connected_edges
+from model import CustomGNN, CustomGAT, fully_connected_edges
 from linprobe import run_linear_probe
 
 import torch
@@ -11,17 +11,18 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 
 if __name__ == "__main__":
-	with open("factkg_train.pickle", "rb") as f:
+	with open("../factkg_train.pickle", "rb") as f:
 		factkg = pickle.load(f)
 		dataset = FactContrastiveDataset(factkg, N=10, model_name="google/embeddinggemma-300m", cache_path="fact_gemma_cache.pkl")
 	
-	with open("factkg_test.pickle", "rb") as f:
+	with open("../factkg_test.pickle", "rb") as f:
 		factkg_test = pickle.load(f)
 		test_dataset = FactContrastiveDataset(factkg_test, N=10, model_name="google/embeddinggemma-300m", cache_path="fact_gemma_cache.pkl")
 
 	writer = SummaryWriter("logs")
 	
-	model = CustomGNN(768, 512, 128)
+	### Edit to change model ###
+	model = CustomGAT(768, 512, 128) # CustomGNN(768, 512, 128) 
 
 	device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 	model = model.to(device)
